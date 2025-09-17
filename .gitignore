@@ -1,0 +1,56 @@
+# === PYTHON ===
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+.venv/
+pip-log.txt
+*.sqlite3
+*.ipynb_checkpoints/
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+._*
+
+# IDEs
+.idea/
+*.sublime-project
+*.sublime-workspace
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+*.rej
+# Jupyter Notebook stuff
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# === R / RStudio ===
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+.Rproj.user/
+*.Rproj
+.Rproj*
+
+# Quarto + output
+_output/
+*.html
+*.pdf
+
+# === OS / Misc ===
+.DS_Store
+Thumbs.db
