@@ -1,0 +1,17 @@
+# Runbook — <Routine>
+
+## Trigger
+When to run.
+
+## Steps
+1. …
+2. …
+
+## Verification
+Checklist & expected signals.
+
+## Rollback
+Steps to revert.
+
+## Links
+Dashboards, alerts, owners.
