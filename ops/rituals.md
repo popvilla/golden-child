@@ -1,4 +1,4 @@
-[[../../mnt/Projects/Quantum_Learn/Quantum_Harmony/Projects/System/Artemis]] [[chatlog]]
+
 
 You said:
 yes please sketch and, but it looks like msft is updating based on my chats
