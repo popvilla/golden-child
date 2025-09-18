@@ -1,0 +1,139 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 250
+---
+
+|                                                           |
+|----------------------------------------------------------:|
+|                                   id: adr-001-mcp-gateway |
+|                                          status: accepted | 
+|                                          date: 2025-09-09 |
+|                                            owner: artemis |
+| tags: [#decision:memory-bus, #topic:agentic-architecture] |
+|                                                    links: |
+|                                       \- canon/040-atp.md |
+|                              \- canon/050-agentic-arch.md |
+|                              \- canon/030-memory-model.md |
+
+```         
+# ADR-001 — MCP Gateway as Single Memory Interface
+
+## Decision
+Adopt a lightweight REST-based **MCP Gateway** as the single interface between agents and knowledge stores. The gateway reads/writes **Obsidian** for human‑legible knowledge and persists telemetry/events in **Supabase** for analytics and governance.
+```
+
+\## Context - Agents run in Warp.dev with MCP linkage. - We want **decoupling** (agents speak HTTP), **concurrency** (queued writes), and **persistence** (Markdown + rows). - **ATP envelopes** shape context to reduce tokens and standardize traces.
+See canon: `040-atp.md`. [\#<file:Artemis_Communcation_Protocol> (ATP).md] - Memory model requires durable summaries + backlinks. See `030-memory-model.md`. [\#<file:MemoryHandling_Strategy.md.md>] - Multi‑agent handoffs live in a shared bus. See
+`050-agentic-arch.md`. [\#<file:Codex> Agentic Architecture.md]
+
+```         
+    ## Consequences
+    - One choke point for security, rate limits, and provenance.
+    - n8n calls the same gateway; workflows become auditable lanes.
+    - Supabase holds cost and workflow metrics → weekly ROI rollups.
+    - Obsidian stays the **source of narrative truth**; Supabase is the ledger.
+    
+    ## Alternatives considered
+    - Direct filesystem access by agents → brittle and unsafe.
+    - Agents talking directly to Supabase + Obsidian plugins → duplicated logic.
+    - Vector‑only memory → poor human legibility and governance.
+    
+    ## Follow‑ups
+    - ADR‑002: n8n as canonical workflow engine with manual high‑cost lane.  
+    - ADR‑003: ATP prompt envelopes are mandatory for all agents. [#file:Artemis_Communcation_Protocol (ATP).md]
+```
+
+2) projects/common/prompts/Agent—Harvester.prompt.md (ATP‑style)
+
+The HarvesterAgent ingests feeds (RSS/APIs), extracts signals, and appends concise summaries + tags into Obsidian via the MCP. It also logs events/costs to Supabase. It never makes binding decisions.
+
+# Agent — HarvesterAgent
+
+## Contract
+- **Intent:** ingest_external_signals
+- **Inputs (JSON):**
+  - `items`: [{ title, url, published_at, source }]
+  - `run_id`: string
+- **Outputs (JSON):**
+  - `summaries`: [{ url, verdict, summary_md, tags }]
+  - `note_paths`: [ "knowledge/briefs/vendors/<slug>.md" ... ]
+- **KPIs:** token_cost <= target, summary length <= 120 words, verdict present.
+
+## Instruction (System Prompt; ATP envelope)
+You are HarvesterAgent. Follow the **ATP envelope**:
+
+
+Steps:
+1) For each input item, draft a 3–5 sentence **neutral summary** ending with a **one‑word verdict**: `relevant|maybe|irrelevant`.
+2) Add **tags** drawn from the glossary (e.g., #vendor, #alignment, #ai-secure). [#file:Emoji_Glossary.md]
+3) Emit `summaries[]` and the **target Obsidian path** (create if missing): `knowledge/briefs/vendors/<source_slug>.md`.
+
+## Tools (all via MCP)
+- `GET /notes/search?q=...`
+- `POST /notes/upsert`
+- `POST /context/append`
+- `POST /events/log`
+
+## Guardrails
+- Never paste secrets or API keys into notes.
+- Never update canon (`canon/`) paths; append only in `/knowledge/` unless explicitly instructed.
+
+## Evaluation (10 minimal pairs)
+- Input: noisy press release → Output: concise summary + `verdict=relevant`.
+- Input: vague article → Output: `verdict=maybe` with clear uncertainty.
+- Input: marketing fluff → Output: `verdict=irrelevant` + rationale in one line.
+- Input: duplicate URL within 24h → Output: skip and log `event=duplicate`.
+(Keep the rest in `projects/common/prompts/evals/harvester_minimal_pairs.jsonl`)
+
+Anchors: ATP envelope + tagging and memory rules map to your canon. [#file:Artemis_Communcation_Protocol (ATP).md] [#file:MemoryHandling_Strategy.md.md]
+
+
+3) services/mcp-gateway/README.md
+# MCP Gateway
+
+A tiny REST gateway between agents (Warp.dev MCP) and your stores:
+- **Obsidian (Local REST API)** for human‑legible memory
+- **Supabase** for telemetry, events, and vendor tracking
+
+## Endpoints
+- `GET /context?path=<note>&include=backlinks,tags`
+- `POST /context/append` → `{ path, section?, content, tags? }`
+- `GET /notes/search?q=<query>&limit=20&scope=title|body|tags`
+- `POST /notes/upsert` → create/overwrite page (frontmatter+body)
+- `POST /events/log` → `{ run_id?, agent, type, payload }`
+- `POST /runs/start` → `{ agent, meta }` → `{ run_id }`
+- `POST /runs/finish` → `{ run_id, tokens_in, tokens_out, cost_usd, success }`
+
+All endpoints require header: `x-api-key: ${MCP_API_KEY}`
+
+## Quickstart
+
+1. **Install deps**
+   ```bash
+   cd services/mcp-gateway
+   npm i
+   
+   
+   Gateway listens on http://localhost:8765.
+   
+
+
+Env Example 
+```bash
+# MCP Gateway
+PORT=8765
+MCP_API_KEY=change-me
+
+# Obsidian (Local REST API plugin)
+OBSIDIAN_BASE_URL=http://localhost:27123
+OBSIDIAN_API_KEY=obsidian-token-here
+
+# Supabase (Project settings → API; use service role only on server)
+SUPABASE_URL=https://<your>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=super-secret
+
+
+
+
+# N8N 
