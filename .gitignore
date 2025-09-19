@@ -8,7 +8,7 @@ build/
 .env
 .venv/
 pip-log.txt
-*.sqlite3
+*.sqlite3   
 *.ipynb_checkpoints/
 *.log
 .pytest_cache/
