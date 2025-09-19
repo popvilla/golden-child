@@ -54,3 +54,8 @@ _output/
 # === OS / Misc ===
 .DS_Store
 Thumbs.db
+.md*
+canon/NP/
+NP/*
+
+
