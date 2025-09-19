@@ -55,7 +55,7 @@ _output/
 .DS_Store
 Thumbs.db
 .md*
-canon/NP/
-NP/*
+/canon/NP
+NP/
 
 
